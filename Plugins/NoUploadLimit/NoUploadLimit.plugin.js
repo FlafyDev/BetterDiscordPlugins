@@ -4,12 +4,12 @@
  * @authorLink https://twitter.com/FlafyDev
  * @donate https://paypal.me/flafyarazi
  * @website http://flafy.herokuapp.com/
- * @source https://raw.githubusercontent.com/FlafyDev/BetterDiscordPlugins/master/Plugins/NoUploadLimit/NoUploadLimit.plugin.js
+ * @source https://github.com/FlafyDev/BetterDiscordPlugins/tree/master/Plugins/NoUploadLimit
  */
 var NoUploadLimit = (_ => {
-  var videos = {}, amounts = {}, switches = {}
-
-  const uploadIconPath = `
+	var videos = {}, amounts = {}, switches = {}
+  
+	const uploadIconPath = `
 		<svg aria-hidden="false" width="24" height="24" viewBox="0 0 24 24">
 		  <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M16.293 9.293L17.707 10.707L12 16.414L6.29297 10.707L7.70697 9.293L11 12.586V2H13V12.586L16.293 9.293ZM18" transform="scale(1.2, -1.2) translate(-2, -17)"/>
 		  
@@ -339,7 +339,7 @@ var NoUploadLimit = (_ => {
 			this.uploadPromptToUploadPatch = BdApi.monkeyPatch(this.uploadArea.__reactInternalInstance$.return.stateNode, "promptToUpload", {
 				before: (e) => {
 					var files = e.methodArguments[0]
-					console.log("FILESS", files);
+					//console.log("FILESS", files);
 					if (files[1] == undefined) {
 						window.noUploadLimitThis.lastFilesDropped = files[0]
 					} else {
@@ -351,7 +351,7 @@ var NoUploadLimit = (_ => {
 			this.uploadErrorPatch = BdApi.monkeyPatch(BdApi.findModule(m => m.displayName === 'UploadError').prototype, 'render', {
 				instead: (e) => {
 					try {
-						console.log(window.noUploadLimitThis.lastFilesDropped);
+						//console.log(window.noUploadLimitThis.lastFilesDropped);
 						
 						if (window.noUploadLimitThis.lastFilesDropped != undefined) {
 							var file = window.noUploadLimitThis.lastFilesDropped;
@@ -377,15 +377,35 @@ var NoUploadLimit = (_ => {
 
 			// Reload again when starting discord.
 			var an_element_exists = document.getElementById("NULon")
-			console.log("ELE EXISTS?", an_element_exists);
+			//console.log("ELE EXISTS?", an_element_exists);
 			if (an_element_exists == undefined) {
 				var an_element = document.createElement("div");
 				an_element.id = "NULon"
 				document.head.appendChild(an_element)
-				console.log("did element");
+				//console.log("did element");
 				setTimeout( _ => {
 					BdApi.Plugins.reload(this.getName());
 				}, 1000)
+			} else {
+				var raw_code_url = 'https://git.io/JUlgK';
+				var info_code_url = 'https://git.io/JUlgN';
+				
+				BDFDB.LibraryRequires.request({
+					method: "GET",
+					url: info_code_url
+				}, (error, response, info_json) => {
+					try {
+						if (!error && response && response.statusCode == 200) {
+							info_json = JSON.parse(info_json);
+							console.log(this.getVersion(), info_json)
+							if (this.getVersion() != info_json.version) {
+								BdApi.alert("OUTDATED PLUGIN", `The plugin **"${this.getName()}"** is outdated.\n\n v${this.getVersion()} => v${info_json.version}\n\nHow To Update:\n---\n\nGo to ${raw_code_url} and press CTRL+S to save it as a file, then put the file in the plugins folder.\n\nChanges:\n---\n\n ${info_json.changelog}`)
+							}
+						}
+					} catch(e) {
+						console.log(e);
+					}
+				});
 			}
 		}
 
@@ -999,7 +1019,7 @@ var NoUploadLimit = (_ => {
 					popoutelements.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.MessageDivider , {
 						className: BDFDB.disCN.marginbottom8
 					}));					
-					popoutelements.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Button, {
+					/*popoutelements.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Button, {
 						children: "Restart",
 						grow: 1,
 						style: {"background-color": "#FF0000"},
@@ -1008,7 +1028,7 @@ var NoUploadLimit = (_ => {
 						onClick: value => {
 							BdApi.Plugins.reload(this.name)
 						}
-					}));
+					}));*/
 					
 					this.uploadPopup = instance;
 					
