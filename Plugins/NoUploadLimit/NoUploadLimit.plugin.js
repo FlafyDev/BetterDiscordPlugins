@@ -4,7 +4,7 @@
  * @authorLink https://twitter.com/FlafyDev
  * @donate https://paypal.me/flafyarazi
  * @website http://flafy.herokuapp.com/
- * @source later
+ * @source https://raw.githubusercontent.com/FlafyDev/BetterDiscordPlugins/master/Plugins/NoUploadLimit/NoUploadLimit.plugin.js
  */
 var NoUploadLimit = (_ => {
   var videos = {}, amounts = {}, switches = {}
