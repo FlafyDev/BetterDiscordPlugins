@@ -5,15 +5,17 @@
 		"info": {
 			"name": "NoUploadLimit",
 			"author": "Flafy",
-			"version": "0.1.4",
+			"version": "0.1.5",
 			"description": "Several alternative ways to upload files, images and videos through discord."
 		},
 		"changeLog": {
 			"fixed": {
 				"Quick Action": "Fixed plugin not working due to the BDFDB update."
 			}
-		}
+		},
+		"rawUrl": "https://raw.githubusercontent.com/FlafyDev/BetterDiscordPlugins/master/Plugins/NoUploadLimit/NoUploadLimit.plugin.js"
 	};
+	
     return !window.BDFDB_Global || (!window.BDFDB_Global.loaded && !window.BDFDB_Global.started) ? class {
 		getName () {return config.info.name;}
 		getAuthor () {return config.info.author;}
@@ -51,8 +53,9 @@
 			  
 			  <path fill="currentColor" fill-rule="evenodd"  clip-rule="evenodd" d="M0 .586L16.293 9.293ZM18 20V18H20V20C20 21.102 19.104 22 18 22H6C4.896 22 4 21.102 4 20V18H6V20H18Z" transform="scale(1.2, 1.2) translate(0, -)"/>
 			</svg>
+			
 		`
-		
+	
 		let uploadPopupOpened,
 			uploadPopup,
 			uploadLastTime,
@@ -116,7 +119,7 @@
 			
 			onStart() {
 				// Reload again when starting discord.
-				var an_element_exists = document.getElementById("NULon")
+				/*var an_element_exists = document.getElementById("NULon")
 				if (an_element_exists == undefined) {
 					var an_element = document.createElement("div");
 					an_element.id = "NULon"
@@ -125,7 +128,7 @@
 						BdApi.Plugins.reload(this.getName());
 					}, 1000)
 					return;
-				} 
+				} */
 					
 				uploadPopupOpened = true;
 				uploadLastTime = new Date();
@@ -657,7 +660,7 @@
 										}
 										
 										try {
-											copyToClipboard(uploadLink);
+											this.copyToClipboard(uploadLink);
 											BDFDB.NotificationUtils.toast(`"${uploadLink}" Has been copied to the clipboard`, {type:"success"});
 										} catch { }
 										
@@ -788,7 +791,7 @@
 								}
 								
 								try {
-									copyToClipboard(uploadLink);
+									this.copyToClipboard(uploadLink);
 									BDFDB.NotificationUtils.toast(`"${uploadLink}" Has been copied to the clipboard`, {type:"success"});
 								} catch { }
 								
@@ -905,9 +908,9 @@
 								let uploadLink = `https://streamable.com/${code}`;
 								
 								try {
-									const textarea = document.getElementsByClassName(BDFDB.disCN.textarea)[0];
-									const slateEditor = this.findInTree(textarea.__reactInternalInstance$, e => e && e.insertText, {walkable: ["return", "stateNode", "editorRef"]});
-					
+									let textarea = document.getElementsByClassName(BDFDB.disCN.textarea)[0];
+									let slateEditor = this.findInTree(textarea.__reactInternalInstance$, e => e && e.insertText, {walkable: ["return", "stateNode", "editorRef"]});
+											
 									if (textarea.querySelectorAll('[data-slate-string=true]').length > 0) {
 										slateEditor.insertText(`\n`);
 									}
@@ -962,7 +965,7 @@
 						try {
 							progress += chunk.length;
 							let uploadPercentage = parseInt((progress/req.headers['content-length'])*100);
-							console.log('percent complete: '+uploadPercentage+'%\n');
+							// console.log('percent complete: '+uploadPercentage+'%\n');
 							
 								
 							uploadPercentageElementPreText = `Uploading video ${uploadPercentage}%`;
