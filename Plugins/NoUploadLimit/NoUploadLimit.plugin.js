@@ -1,16 +1,16 @@
-//META{"name":"NoUploadLimit","authorId":"143031299152674816","donate":"https://twitter.com/FlafyDev","website":"http://flafy.herokuapp.com/","source":"https://raw.githubusercontent.com/FlafyDev/BetterDiscordPlugins/master/Plugins/NoUploadLimit/NoUploadLimit.plugin.js"}*//
+//META{"name":"NoUploadLimit","authorId":"143031299152674816","donate":"https://paypal.me/flafyarazi","website":"http://flafy.herokuapp.com/","source":"https://raw.githubusercontent.com/FlafyDev/BetterDiscordPlugins/master/Plugins/NoUploadLimit/NoUploadLimit.plugin.js"}*//
 
  module.exports = (_ => {
     const config = {
 		"info": {
 			"name": "NoUploadLimit",
 			"author": "Flafy",
-			"version": "0.1.5",
+			"version": "0.1.6",
 			"description": "Several alternative ways to upload files, images and videos through discord."
 		},
 		"changeLog": {
 			"fixed": {
-				"Quick Action": "Fixed plugin not working due to the BDFDB update."
+				"Quick Action": "Uploading images not working, and other stuff..."
 			}
 		},
 		"rawUrl": "https://raw.githubusercontent.com/FlafyDev/BetterDiscordPlugins/master/Plugins/NoUploadLimit/NoUploadLimit.plugin.js"
@@ -171,7 +171,7 @@
 							BdApi.alert("Invalid image file type", "Images must be any of the following types:\n\n.mp4\n\n.mov\n\n.mpeg4\n\n.avi\n\n.wmv\n\n.mpegps\n\n.flv\n\n.webm");
 						}
 					} else {
-						BdApi.alert("Can't upload multiple files at once", 'The plugin "No Upload Limit" cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
+						BdApi.alert("Can't upload multiple files at once", 'The plugin NoUploadLimit cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
 					}
 					
 					e.target.value = null;
@@ -186,7 +186,7 @@
 					if (file.size > amounts.uploadLimit * 1000000) {
 						BdApi.alert("Reached upload limit", `Max file size is ${amounts.uploadLimit} MB.\n\nThe limit can be changed in the plugins's settings.`);
 					} else {
-						imgurUpload(file);
+						this.imgurUpload(file);
 					}
 				}
 				uploadImageSelector.onchange = e => { 
@@ -199,7 +199,7 @@
 							BdApi.alert("Invalid image file type", "Images must be any of the following types:\n\n.jpeg\n\n.jpg\n\n.png\n\n.gif");
 						}
 					} else {
-						BdApi.alert("Can't upload multiple files at once", 'The plugin "No Upload Limit" cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
+						BdApi.alert("Can't upload multiple files at once", 'The plugin NoUploadLimit cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
 					}
 					
 					e.target.value = null;
@@ -221,7 +221,7 @@
 					if (uploadButtonsDisabled == false) {
 						uploadFileSelectorFunction.call(this, file);
 					} else {
-						BdApi.alert("Can't upload multiple files at once", 'The plugin "No Upload Limit" cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
+						BdApi.alert("Can't upload multiple files at once", 'The plugin NoUploadLimit cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
 					}
 					
 					e.target.value = null;
@@ -240,7 +240,7 @@
 							uploadFileSelectorFunction.call(this, file);
 						}
 					} else {
-						BdApi.alert("Can't upload multiple files at once", 'The plugin "No Upload Limit" cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
+						BdApi.alert("Can't upload multiple files at once", 'The plugin NoUploadLimit cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
 					}
 				}
 				uploadAutoSelector.onchange = e => { 
@@ -312,12 +312,14 @@
 				uploadErrorPatch = BdApi.monkeyPatch(BdApi.findModule(m => m.displayName === 'UploadError').prototype, 'render', {
 					instead: (e) => {
 						try {
-							if (lastFilesDropped != undefined) {
-								var file = lastFilesDropped;
-								lastFilesDropped = undefined;
-								uploadAutoSelectorFunction.call(this, file);
-							} else if (lastFilesDropped === "multi") {
-								BdApi.alert("Can't upload multiple files at once", 'The plugin "No Upload Limit" cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
+							if (document.getElementsByClassName("da-backdrop").length === 0) {
+								if (lastFilesDropped === "multi") {
+									BdApi.alert("Can't upload multiple files at once", 'The plugin NoUploadLimit cannot upload multiple files at once.\n\nTo cancel the current upload restart discord with CTRL+R.');
+								} else if (lastFilesDropped != undefined) {
+									var file = lastFilesDropped;
+									lastFilesDropped = undefined;
+									uploadAutoSelectorFunction.call(this, file);
+								}
 							}
 						} catch (e) {
 							BDFDB.NotificationUtils.toast("Failed to upload file from drag and drop. (errno 1)", {type:"error"});
@@ -591,6 +593,18 @@
 
 				return null;
 			};
+			
+			pasteToTextarea(text) {
+				let textarea = document.getElementsByClassName(BDFDB.disCN.textarea)[0];
+				let slateEditor = this.findInTree(textarea.__reactInternalInstance$, e => e && e.insertText, {walkable: ["return", "stateNode", "editorRef"]});
+				
+				let addNewline = ""
+				
+				if (!textarea.__reactInternalInstance$.stateNode.firstElementChild.classList.contains("da-placeholder")) {
+					addNewline = "\n";
+				}
+				slateEditor.insertText(addNewline + text);
+			}
 		
 			goFileUpload (file) {
 				var path = file.path;
@@ -646,13 +660,7 @@
 										let uploadLink = `https://gofile.io/d/${code}`;
 
 										try {
-											let textarea = document.getElementsByClassName(BDFDB.disCN.textarea)[0];
-											let slateEditor = this.findInTree(textarea.__reactInternalInstance$, e => e && e.insertText, {walkable: ["return", "stateNode", "editorRef"]});
-											
-											if (textarea.querySelectorAll('[data-slate-string=true]').length > 0) {
-												slateEditor.insertText(`\n`);
-											}
-											slateEditor.insertText(uploadLink);
+											this.pasteToTextarea(uploadLink);
 										}
 										catch(e) {
 											BDFDB.NotificationUtils.toast(`Failed to insert "${uploadLink}" to textarea. (errno 5) `, {type:"error"});
@@ -777,13 +785,7 @@
 								let uploadLink = result.data.link;
 								
 								try {
-									let textarea = document.getElementsByClassName(BDFDB.disCN.textarea)[0];
-									let slateEditor = this.findInTree(textarea.__reactInternalInstance$, e => e && e.insertText, {walkable: ["return", "stateNode", "editorRef"]});
-									
-									if (textarea.querySelectorAll('[data-slate-string=true]').length > 0) {
-										slateEditor.insertText(`\n`);
-									}
-									slateEditor.insertText(uploadLink);
+									this.pasteToTextarea(uploadLink);
 								}
 								catch(e) {
 									BDFDB.NotificationUtils.toast(`Failed to insert "${uploadLink}" to textarea. (errno 5) `, {type:"error"});
@@ -908,13 +910,7 @@
 								let uploadLink = `https://streamable.com/${code}`;
 								
 								try {
-									let textarea = document.getElementsByClassName(BDFDB.disCN.textarea)[0];
-									let slateEditor = this.findInTree(textarea.__reactInternalInstance$, e => e && e.insertText, {walkable: ["return", "stateNode", "editorRef"]});
-											
-									if (textarea.querySelectorAll('[data-slate-string=true]').length > 0) {
-										slateEditor.insertText(`\n`);
-									}
-									slateEditor.insertText(uploadLink);
+									this.pasteToTextarea(uploadLink);
 								}
 								catch(e) {
 									BDFDB.NotificationUtils.toast(`Failed to insert "${uploadLink}" to textarea. (errno 5) `, {type:"error"});
