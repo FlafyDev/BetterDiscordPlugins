@@ -5,12 +5,12 @@
 		"info": {
 			"name": "NoUploadLimit",
 			"author": "Flafy",
-			"version": "0.1.6",
+			"version": "0.1.7",
 			"description": "Several alternative ways to upload files, images and videos through discord."
 		},
 		"changeLog": {
-			"fixed": {
-				"Quick Action": "Uploading images not working, and other stuff..."
+			"added": {
+				"Cancel uploads": "It's now possible to cancel uploads."
 			}
 		},
 		"rawUrl": "https://raw.githubusercontent.com/FlafyDev/BetterDiscordPlugins/master/Plugins/NoUploadLimit/NoUploadLimit.plugin.js"
@@ -77,7 +77,10 @@
 			uploadAutoSelectorFunction,
 			reloadPopup,
 			uploadPromptToUploadPatch,
-			uploadErrorPatch
+			uploadErrorPatch,
+			uploadCancel,
+			fileStream,
+			uploadRequest
 		
 		return class NoUploadLimit extends Plugin {
 			onLoad() {
@@ -139,6 +142,8 @@
 				uploadButtonsDisabled = false;
 				lastFilesDropped = undefined;
 				uploadsButton = null;
+				fileStream = null;
+				uploadRequest = null;
 				
 				// Video
 				uploadVideoSelector = document.createElement('input');
@@ -251,6 +256,14 @@
 					e.target.value = null;
 				}
 				
+				// Cancel
+				uploadCancel = function() {
+					// console.log("Canceling...", this, fileStream, uploadRequest)
+					fileStream.close()
+					fileStream = null
+					uploadRequest.abort()
+				}
+				
 				reloadPopup = function() {
 					if (uploadButtonsDisabled == false) {
 						uploadPercentageElementPreText = "";
@@ -345,6 +358,10 @@
 				if (uploadPromptToUploadPatch) {
 					uploadPromptToUploadPatch();
 				}
+				
+				try {
+					uploadCancel()
+				} catch { }
 				
 				this.forceUpdateAll();
 			}
@@ -538,6 +555,22 @@
 									}));
 
 								}
+								
+								popoutelements.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.MessageDivider , {
+									className: BDFDB.disCN.marginbottom8
+								}));
+								popoutelements.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.Button, {
+									children: "Cancel upload",
+									grow: 1,
+									key: "button-cancel",
+									style: {"background-color": "#f04747"},
+									disabled: ((!uploadButtonsDisabled) || (fileStream == null)),
+									onClick: value => {
+										uploadCancel()
+									}
+								}));
+
+							
 								popoutelements.push(BDFDB.ReactUtils.createElement(BDFDB.LibraryComponents.FormComponents.MessageDivider , {
 									className: BDFDB.disCN.marginbottom8
 								}));
@@ -637,9 +670,9 @@
 							
 							let server = result.data.server;
 
-							var fileStream = BDFDB.LibraryRequires.fs.createReadStream(path);
+							fileStream = BDFDB.LibraryRequires.fs.createReadStream(path);
 												
-							var req = BDFDB.LibraryRequires.request({
+							uploadRequest = BDFDB.LibraryRequires.request({
 								method: "POST",
 								url: `https://${server}.gofile.io/uploadFile`,
 								formData: {
@@ -686,7 +719,11 @@
 										 
 									}
 									else {
-										BDFDB.NotificationUtils.toast(`Failed to upload file to GoFile. (errno 2 | sc ${ response ? response.statusCode : "none" })`, {type:"error"});
+										var errorMsg = `Failed to upload file to GoFile. (errno 2 | sc ${ response ? response.statusCode : "none" })`
+										
+										console.log(errorMsg, error)
+										
+										BDFDB.NotificationUtils.toast(errorMsg, {type:"error"});
 										uploadButtonsDisabled = false;
 										reloadPopup();
 										return;
@@ -701,26 +738,34 @@
 							});
 							
 							fileStream.on('data', function(chunk){
+								
+								if (fileStream == null) {
+									return;
+								}
 								try {
 									progress += chunk.length;
-									let uploadPercentage = parseInt((progress/req.headers['content-length'])*100);
+									let uploadPercentage = parseInt((progress/uploadRequest.headers['content-length'])*100);
 									// console.log('percent complete: '+uploadPercentage+'%\n');
 									
 									uploadPercentageElementPreText = `Uploading file ${uploadPercentage}%`;
-									uploadProcessElementPreText = `${(Math.round(progress/1000000 * 100) / 100).toFixed(2)}/${(Math.round(req.headers['content-length']/1000000 * 100) / 100).toFixed(2)} MB`;
-										
+									uploadProcessElementPreText = `${(Math.round(progress/1000000 * 100) / 100).toFixed(2)}/${(Math.round(uploadRequest.headers['content-length']/1000000 * 100) / 100).toFixed(2)} MB`;
+									
 									reloadPopup();
 									
 								} catch {}
 							});
 							
-							fileStream.on('end', function(){
-								try {
+							fileStream.on('close', function(){
+								if (fileStream == null) {
+									uploadButtonsDisabled = false;
+									uploadPercentageElementPreText =  ``;
+								} else {
 									uploadPercentageElementPreText = `Uploading file...`;
 									uploadProcessElementPreText = ``;
-
+								}
+								fileStream = null
+								try {
 									reloadPopup();
-
 								} catch {}
 							});
 							
@@ -763,9 +808,9 @@
 
 				try {
 					var progress = 0;
-					var fileStream = BDFDB.LibraryRequires.fs.createReadStream(path);
+					fileStream = BDFDB.LibraryRequires.fs.createReadStream(path);
 										
-					var req = BDFDB.LibraryRequires.request({
+					uploadRequest = BDFDB.LibraryRequires.request({
 						method: "POST",
 						url: `https://api.imgur.com/3/image?client_id=546c25a59c58ad7`,
 						formData: {
@@ -812,7 +857,11 @@
 								 
 							}
 							else {
-								BDFDB.NotificationUtils.toast(`Failed to upload image to Imgur. (errno 1 | sc ${ response ? response.statusCode : "none" })`, {type:"error"});
+								var errorMsg = `Failed to upload image to Imgur. (errno 1 | sc ${ response ? response.statusCode : "none" })`
+								
+								console.log(errorMsg, error)
+								
+								BDFDB.NotificationUtils.toast(errorMsg, {type:"error"});
 								uploadButtonsDisabled = false;
 								reloadPopup();
 								return;
@@ -827,27 +876,34 @@
 					});
 					
 					fileStream.on('data', function(chunk){
+						if (fileStream == null) {
+							return;
+						}
 						try {
 							progress += chunk.length;
-							let uploadPercentage = parseInt((progress/req.headers['content-length'])*100);
+							let uploadPercentage = parseInt((progress/uploadRequest.headers['content-length'])*100);
 							// console.log('percent complete: '+uploadPercentage+'%\n');
 							
 								
 							uploadPercentageElementPreText = `Uploading image ${uploadPercentage}%`;
-							uploadProcessElementPreText =  `${(Math.round(progress/1000000 * 100) / 100).toFixed(2)}/${(Math.round(req.headers['content-length']/1000000 * 100) / 100).toFixed(2)} MB`;
+							uploadProcessElementPreText =  `${(Math.round(progress/1000000 * 100) / 100).toFixed(2)}/${(Math.round(uploadRequest.headers['content-length']/1000000 * 100) / 100).toFixed(2)} MB`;
 								
 							reloadPopup();
 							
 						} catch {}
 					});
 					
-					fileStream.on('end', function(){
-						try {
+					fileStream.on('close', function(){
+						if (fileStream == null) {
+							uploadButtonsDisabled = false;
+							uploadPercentageElementPreText =  ``;
+						} else {
 							uploadPercentageElementPreText = `Uploading image...`;
 							uploadProcessElementPreText = ``;
-							
+						}
+						fileStream = null
+						try {
 							reloadPopup();
-						
 						} catch {}
 					});
 				} catch(e) {
@@ -882,11 +938,11 @@
 
 				try {
 					var progress = 0;
-					var fileStream = BDFDB.LibraryRequires.fs.createReadStream(path);
+					fileStream = BDFDB.LibraryRequires.fs.createReadStream(path);
 										
 					var auth = btoa(videos.streamableUsername + ":" + videos.streamablePass);
 					
-					var req = BDFDB.LibraryRequires.request({
+					uploadRequest = BDFDB.LibraryRequires.request({
 						method: "POST",
 						url: `https://api.streamable.com/upload`,
 						'headers': {
@@ -943,7 +999,11 @@
 								return;
 							}
 							else {
-								BDFDB.NotificationUtils.toast(`Failed to upload image to Streamable. (errno 1 | sc ${ response ? response.statusCode : "none" })`, {type:"error"});
+								var errorMsg = `Failed to upload image to Streamable. (errno 1 | sc ${ response ? response.statusCode : "none" })`
+								
+								console.log(errorMsg, error);
+								
+								BDFDB.NotificationUtils.toast(errorMsg, {type:"error"});
 								uploadButtonsDisabled = false;
 								reloadPopup();
 								return;
@@ -958,27 +1018,34 @@
 					});
 					
 					fileStream.on('data', function(chunk){
+						if (fileStream == null) {
+							return;
+						}
 						try {
 							progress += chunk.length;
-							let uploadPercentage = parseInt((progress/req.headers['content-length'])*100);
+							let uploadPercentage = parseInt((progress/uploadRequest.headers['content-length'])*100);
 							// console.log('percent complete: '+uploadPercentage+'%\n');
 							
 								
 							uploadPercentageElementPreText = `Uploading video ${uploadPercentage}%`;
-							uploadProcessElementPreText =  `${(Math.round(progress/1000000 * 100) / 100).toFixed(2)}/${(Math.round(req.headers['content-length']/1000000 * 100) / 100).toFixed(2)} MB`;
+							uploadProcessElementPreText =  `${(Math.round(progress/1000000 * 100) / 100).toFixed(2)}/${(Math.round(uploadRequest.headers['content-length']/1000000 * 100) / 100).toFixed(2)} MB`;
 								
 							reloadPopup();
 							
 						} catch {}
 					});
 					
-					fileStream.on('end', function(){
-						try {
+					fileStream.on('close', function(){
+						if (fileStream == null) {
+							uploadButtonsDisabled = false;
+							uploadPercentageElementPreText =  ``;
+						} else {
 							uploadPercentageElementPreText = `Uploading video...`;
 							uploadProcessElementPreText = ``;
-							
+						}
+						fileStream = null
+						try {
 							reloadPopup();
-						
 						} catch {}
 					});
 				} catch(e) {
